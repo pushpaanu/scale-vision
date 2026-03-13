@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <base target="_self">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DashAI - Intelligent Dashboard Generator</title>
+    <meta name="description" content="Generate fully functional, interactive data dashboards using only natural language prompts">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#4F46E5",
+                        secondary: "#10B981",
+                        accent: "#F59E0B",
+                        dark: "#1F2937",
+                        light: "#F9FAFB"
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'system-ui', 'sans-serif']
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'slide-up': 'slideUp 0.3s ease-out'
+                    },
+                    keyframes: {
+                        slideUp: {
+                            '0%': { transform: 'translateY(10px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .chart-container {
+            transition: all 0.3s ease;
+        }
+        
+        .chart-container:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .dashboard-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .dashboard-card:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .typewriter {
+            overflow: hidden;
+            border-right: .15em solid #4F46E5;
+            white-space: nowrap;
+            animation: typing 3.5s steps(40, end), blink-caret .75s step-end infinite;
+        }
+        
+        @keyframes typing {
+            from { width: 0 }
+            to { width: 100% }
+        }
+        
+        @keyframes blink-caret {
+            from, to { border-color: transparent }
+            50% { border-color: #4F46E5; }
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <header class="gradient-bg text-white shadow-lg">
+        <nav class="container mx-auto px-4 py-4">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-2">
+                    <i class="fas fa-chart-line text-2xl"></i>
+                    <h1 class="text-2xl font-bold">DashAI</h1>
+                </div>
+                <ul id="nav-list" class="flex space-x-6"></ul>
+                <div class="flex items-center space-x-4">
+                    <button id="theme-toggle" class="p-2 rounded-full bg-white/10 hover:bg-white/20 transition">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                    <button id="export-btn" class="px-4 py-2 bg-white text-primary rounded-lg font-semibold hover:bg-gray-100 transition">
+                        <i class="fas fa-download mr-2"></i>Export Dashboard
+                    </button>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <!-- Hero Section -->
+        <section class="mb-12">
+            <div class="text-center max-w-3xl mx-auto">
+                <h2 class="text-4xl font-bold text-gray-900 mb-4">
+                    Generate Interactive Dashboards with <span class="text-primary typewriter">Natural Language</span>
+                </h2>
+                <p class="text-xl text-gray-600 mb-8">
+                    No technical skills required. Just describe what you want to see, and our AI builds your perfect dashboard instantly.
+                </p>
+            </div>
+        </section>
+
+        <!-- Dashboard Generator Interface -->
+        <section class="mb-12">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Input Panel -->
+                <div class="lg:col-span-2">
+                    <div class="dashboard-card p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-2xl font-bold text-gray-900">Dashboard Generator</h3>
+                            <div class="flex items-center space-x-2">
+                                <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+                                    <i class="fas fa-bolt mr-1"></i>AI Powered
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <!-- Prompt Input -->
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                <i class="fas fa-comment-dots mr-2"></i>Describe your dashboard in plain English
+                            </label>
+                            <div class="relative">
+                                <textarea id="prompt-input" rows="4" class="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="Example: &quot;Show my monthly sales revenue broken down by region and highlight top performing product category&quot;">Show my monthly sales revenue broken down by region and highlight top performing product category</textarea>
+                                <div class="absolute bottom-3 right-3 flex space-x-2">
+                                    <button id="clear-btn" class="p-2 text-gray-500 hover:text-gray-700">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                    <button id="generate-btn" class="px-4 py-2 bg-primary text-white rounded-lg font-semibold hover:bg-primary/90 transition">
+                                        <i class="fas fa-magic mr-2"></i>Generate Dashboard
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Example Prompts -->
+                        <div class="mb-6">
+                            <h4 class="text-sm font-medium text-gray-700 mb-3">Try these examples:</h4>
+                            <div id="example-prompts" class="flex flex-wrap gap-2"></div>
+                        </div>
+                        
+                        <!-- AI Processing Indicator -->
+                        <div id="processing-indicator" class="hidden mb-6">
+                            <div class="flex items-center space-x-3 p-4 bg-blue-50 rounded-lg">
+                                <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                                <div>
+                                    <p class="font-medium text-gray-900">AI is analyzing your request...</p>
+                                    <p class="text-sm text-gray-600">Selecting charts, querying data, and building your dashboard</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Generated Dashboard -->
+                        <div>
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-xl font-bold text-gray-900">Your Dashboard</h3>
+                                <div class="flex space-x-2">
+                                    <button id="refresh-btn" class="p-2 text-gray-500 hover:text-primary">
+                                        <i class="fas fa-sync-alt"></i>
+                                    </button>
+                                    <button id="fullscreen-btn" class="p-2 text-gray-500 hover:text-primary">
+                                        <i class="fas fa-expand"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="dashboard-container" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Sidebar -->
+                <div class="lg:col-span-1">
+                    <div class="space-y-6">
+                        <!-- Data Sources -->
+                        <div class="dashboard-card p-6">
+                            <h3 class="text-lg font-bold text-gray-900 mb-4">
+                                <i class="fas fa-database mr-2"></i>Data Sources
+                            </h3>
+                            <div id="data-sources" class="space-y-3"></div>
+                            <button id="add-source-btn" class="w-full mt-4 px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:text-gray-700 hover:border-gray-400 transition">
+                                <i class="fas fa-plus mr-2"></i>Add Data Source
+                            </button>
+                        </div>
+                        
+                        <!-- Chart Library -->
+                        <div class="dashboard-card p-6">
+                            <h3 class="text-lg font-bold text-gray-900 mb-4">
+                                <i class="fas fa-chart-bar mr-2"></i>Available Chart Types
+                            </h3>
+                            <div id="chart-types" class="grid grid-cols-2 gap-3"></div>
+                        </div>
+                        
+                        <!-- Recent Dashboards -->
+                        <div class="dashboard-card p-6">
+                            <h3 class="text-lg font-bold text-gray-900 mb-4">
+                                <i class="fas fa-history mr-2"></i>Recent Dashboards
+                            </h3>
+                            <div id="recent-dashboards" class="space-y-3"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Features Section -->
+        <section class="mb-12">
+            <h2 class="text-3xl font-bold text-center text-gray-900 mb-8">How It Works</h2>
+            <div id="features-grid" class="grid grid-cols-1 md:grid-cols-3 gap-6"></div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white py-12">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <div class="flex items-center space-x-2 mb-4">
+                        <i class="fas fa-chart-line text-2xl"></i>
+                        <h3 class="text-xl font-bold">DashAI</h3>
+                    </div>
+                    <p class="text-gray-400">Making data visualization accessible to everyone through the power of AI.</p>
+                </div>
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Product</h4>
+                    <ul id="product-links" class="space-y-2"></ul>
+                </div>
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Resources</h4>
+                    <ul id="resource-links" class="space-y-2"></ul>
+                </div>
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Contact</h4>
+                    <ul id="contact-links" class="space-y-2"></ul>
+                </div>
+            </div>
+            <div class="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
+                <p>&copy; 2024 DashAI. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript Implementation -->
+    <script>
+        // Data Layer
+        const navigationItems = [
+            { "label": "Home", "href": "#home", "icon": "fas fa-home" },
+            { "label": "Features", "href": "#features", "icon": "fas fa-star" },
+            { "label": "Pricing", "href": "#pricing", "icon": "fas fa-tag" },
+            { "label": "Documentation", "href": "#docs", "icon": "fas fa-book" }
+        ];
+
+        const examplePrompts = [
+            { "text": "Show quarterly revenue trends with forecast", "icon": "fas fa-chart-line" },
+            { "text": "Customer satisfaction scores by department", "icon": "fas fa-smile" },
+            { "text": "Website traffic sources and conversion rates", "icon": "fas fa-globe" },
+            { "text": "Product inventory levels and reorder alerts", "icon": "fas fa-boxes" },
+            { "text": "Employee performance metrics dashboard", "icon": "fas fa-users" }
+        ];
+
+        const dataSources = [
+            { "name": "Sales Database", "type": "SQL", "status": "Connected", "icon": "fas fa-database", "color": "text-green-500" },
+            { "name": "Google Analytics", "type": "API", "status": "Connected", "icon": "fas fa-chart-bar", "color": "text-blue-500" },
+            { "name": "CRM System", "type": "REST API", "status": "Connected", "icon": "fas fa-users", "color": "text-purple-500" },
+            { "name": "Spreadsheet", "type": "CSV", "status": "Ready", "icon": "fas fa-file-excel", "color": "text-green-600" }
+        ];
+
+        const chartTypes = [
+            { "name": "Line Chart", "icon": "fas fa-chart-line", "description": "Trends over time", "color": "bg-blue-100 text-blue-800" },
+            { "name": "Bar Chart", "icon": "fas fa-chart-bar", "description": "Comparisons", "color": "bg-green-100 text-green-800" },
+            { "name": "Pie Chart", "icon": "fas fa-chart-pie", "description": "Proportions", "color": "bg-purple-100 text-purple-800" },
+            { "name": "Area Chart", "icon": "fas fa-chart-area", "description": "Cumulative data", "color": "bg-yellow-100 text-yellow-800" },
+            { "name": "Scatter Plot", "icon": "fas fa-chart-scatter", "description": "Correlations", "color": "bg-red-100 text-red-800" },
+            { "name": "Heat Map", "icon": "fas fa-fire", "description": "Density data", "color": "bg-orange-100 text-orange-800" }
+        ];
+
+        const recentDashboards = [
+            { "name": "Sales Performance Q3", "date": "2 days ago", "charts": 4, "icon": "fas fa-chart-line" },
+            { "name": "Marketing Campaign", "date": "1 week ago", "charts": 3, "icon": "fas fa-bullhorn" },
+            { "name": "Customer Support", "date": "2 weeks ago", "charts": 5, "icon": "fas fa-headset" }
+        ];
+
+        const features = [
+            { "title": "Natural Language Processing", "description": "Understands plain English requests and translates them into data queries", "icon": "fas fa-language", "color": "text-primary" },
+            { "title": "Smart Chart Selection", "description": "Automatically chooses the most appropriate visualization for your data", "icon": "fas fa-brain", "color": "text-secondary" },
+            { "title": "Real-time Updates", "description": "Dashboards update automatically as new data becomes available", "icon": "fas fa-sync-alt", "color": "text-accent" }
+        ];
+
+        const productLinks = [
+            { "label": "Features", "href": "#features" },
+            { "label": "Pricing", "href": "#pricing" },
+            { "label": "API", "href": "#api" },
+            { "label": "Status", "href": "#status" }
+        ];
+
+        const resourceLinks = [
+            { "label": "Documentation", "href": "#docs" },
+            { "label": "Tutorials", "href": "#tutorials" },
+            { "label": "Blog", "href": "#blog" },
+            { "label": "Community", "href": "#community" }
+        ];
+
+        const contactLinks = [
+            { "label": "Contact Support", "href": "mailto:support@dashai.com", "icon": "fas fa-envelope" },
+            { "label": "Twitter", "href": "https://twitter.com/dashai", "icon": "fab fa-twitter" },
+            { "label": "GitHub", "href": "https://github.com/dashai", "icon": "fab fa-github" }
+        ];
+
+        // Sample dashboard data
+        const sampleDashboardData = {
+            "monthlySales": {
+                "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+                "datasets": [
+                    {
+                        "label": "North Region",
+                        "data": [65000, 59000, 80000, 81000, 56000, 55000, 40000, 85000, 92000, 88000, 95000, 100000],
+                        "borderColor": "#4F46E5",
+                        "backgroundColor": "rgba(79, 70, 229, 0.1)"
+                    },
+                    {
+                        "label": "South Region",
+                        "data": [28000, 48000, 40000, 19000, 86000, 27000, 90000, 75000, 82000, 78000, 85000, 90000],
+                        "borderColor": "#10B981",
+                        "backgroundColor": "rgba(16, 185, 129, 0.1)"
+                    },
+                    {
+                        "label": "East Region",
+                        "data": [45000, 52000, 60000, 71000, 48000, 62000, 75000, 68000, 72000, 81000, 78000, 85000],
+                        "borderColor": "#F59E0B",
+                        "backgroundColor": "rgba(245, 158, 11, 0.1)"
+                    },
+                    {
+                        "label": "West Region",
+                        "data": [38000, 42000, 55000, 49000, 62000, 58000, 65000, 72000, 68000, 75000, 82000, 88000],
+                        "borderColor": "#EF4444",
+                        "backgroundColor": "rgba(239, 68, 68, 0.1)"
+                    }
+                ]
+            },
+            "productCategories": {
+                "labels": ["Electronics", "Clothing", "Home Goods", "Books", "Toys", "Sports"],
+                "datasets": [{
+                    "data": [35, 25, 15, 10, 8, 7],
+                    "backgroundColor": ["#4F46E5", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899"]
+                }]
+            },
+            "topProducts": [
+                { "name": "Smartphone X", "category": "Electronics", "revenue": 125000, "growth": "+12%" },
+                { "name": "Designer Jacket", "category": "Clothing", "revenue": 89000, "growth": "+24%" },
+                { "name": "Coffee Maker", "category": "Home Goods", "revenue": 67000, "growth": "+8%" },
+                { "name": "Fitness Tracker", "category": "Electronics", "revenue": 54000, "growth": "+15%" }
+            ],
+            "metrics": [
+                { "title": "Total Revenue", "value": "$342,580", "change": "+12.5%", "icon": "fas fa-dollar-sign", "color": "text-green-600", "bgColor": "bg-green-50" },
+                { "title": "Avg. Order Value", "value": "$145.20", "change": "+5.3%", "icon": "fas fa-shopping-cart", "color": "text-blue-600", "bgColor": "bg-blue-50" },
+                { "title": "Conversion Rate", "value": "3.8%", "change": "+0.4%", "icon": "fas fa-percentage", "color": "text-purple-600", "bgColor": "bg-purple-50" },
+                { "title": "Customer Satisfaction", "value": "4.7/5.0", "change": "+0.2", "icon": "fas fa-star", "color": "text-yellow-600", "bgColor": "bg-yellow-50" }
+            ]
+        };
+
+        // Reusable Render Functions
+        function renderNavigation(items) {
+            return items.map(item => `
+                <li>
+                    <a href="${item.href}" class="flex items-center space-x-2 hover:text-gray-200 transition">
+                        <i class="${item.icon}"></i>
+                        <span>${item.label}</span>
+                    </a>
+                </li>
+            `).join("");
+        }
+
+        function renderExamplePrompts(items) {
+            return items.map(item => `
+                <button class="example-prompt px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm text-gray-700 transition flex items-center">
+                    <i class="${item.icon} mr-2"></i>
+                    <span>${item.text}</span>
+                </button>
+            `).join("");
+        }
+
+        function renderDataSources(items) {
+            return items.map(item => `
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div class="flex items-center space-x-3">
+                        <i class="${item.icon} ${item.color} text-lg"></i>
+                        <div>
+                            <p class="font-medium text-gray-900">${item.name}</p>
+                            <p class="text-sm text-gray-500">${item.type}</p>
+                        </div>
+                    </div>
+                    <span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded">${item.status}</span>
+                </div>
+            `).join("");
+        }
+
+        function renderChartTypes(items) {
+            return items.map(item => `
+                <div class="p-3 rounded-lg ${item.color} flex flex-col items-center justify-center text-center">
+                    <i class="${item.icon} text-xl mb-2"></i>
+                    <p class="font-medium">${item.name}</p>
+                    <p class="text-xs opacity-80">${item.description}</p>
+                </div>
+            `).join("");
+        }
+
+        function renderRecentDashboards(items) {
+            return items.map(item => `
+                <div class="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg cursor-pointer transition">
+                    <div class="flex items-center space-x-3">
+                        <i class="${item.icon} text-primary"></i>
+                        <div>
+                            <p class="font-medium text-gray-900">${item.name}</p>
+                            <p class="text-sm text-gray-500">${item.date} • ${item.charts} charts</p>
+                        </div>
+                    </div>
+                    <i class="fas fa-chevron-right text-gray-400"></i>
+                </div>
+            `).join("");
+        }
+
+        function renderFeatures(items) {
+            return items.map(item => `
+                <div class="dashboard-card p-6">
+                    <div class="flex items-center space-x-4 mb-4">
+                        <div class="p-3 rounded-lg bg-gray-100">
+                            <i class="${item.icon} ${item.color} text-xl"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-900">${item.title}</h3>
+                    </div>
+                    <p class="text-gray-600">${item.description}</p>
+                </div>
+            `).join("");
+        }
+
+        function renderFooterLinks(items, category) {
+            return items.map(item => `
+                <li>
+                    <a href="${item.href}" class="text-gray-400 hover:text-white transition flex items-center">
+                        ${item.icon ? `<i class="${item.icon} mr-2"></i>` : ''}
+                        ${item.label}
+                    </a>
+                </li>
+            `).join("");
+        }
+
+        function renderMetrics(items) {
+            return items.map(item => `
+                <div class="p-4 rounded-lg ${item.bgColor}">
+                    <div class="flex items-center justify-between mb-2">
+                        <h4 class="font-medium text-gray-700">${item.title}</h4>
+                        <i class="${item.icon} ${item.color}"></i>
+                    </div>
+                    <div class="flex items-end justify-between">
+                        <p class="text-2xl font-bold text-gray-900">${item.value}</p>
+                        <span class="text-sm font-medium ${item.change.startsWith('+') ? 'text-green-600' : 'text-red-600'}">
+                            ${item.change}
+                        </span>
+                    </div>
+                </div>
+            `).join("");
+        }
+
+        function renderTopProducts(items) {
+            return items.map(item => `
+                <tr class="border-b border-gray-100">
+                    <td class="py-3 px-4">${item.name}</td>
+                    <td class="py-3 px-4">
+                        <span class="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded">${item.category}</span>
+                    </td>
+                    <td class="py-3 px-4 font-semibold">${item.revenue.toLocaleString()}</td>
+                    <td class="py-3 px-4">
+                        <span class="text-green-600 font-medium">${item.growth}</span>
+                    </td>
+                </tr>
+            `).join("");
+        }
+
+        // Dashboard Generation Functions
+        function generateDashboard(prompt) {
+            // Show processing indicator
+            document.getElementById('processing-indicator').classList.remove('hidden');
+            
+            // Simulate AI processing delay
+            setTimeout(() => {
+                document.getElementById('processing-indicator').classList.add('hidden');
+                renderDashboard();
+            }, 1500);
+        }
+
+        function renderDashboard() {
+            const container = document.getElementById('dashboard-container');
+            
+            // Clear existing dashboard
+            container.innerHTML = '';
+            
+            // Add metrics cards
+            const metricsHTML = `
+                <div class="md:col-span-2">
+                    <div class="dashboard-card p-6">
+                        <h3 class="text-lg font-bold text-gray-900 mb-4">Key Metrics</h3>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            ${renderMetrics(sampleDashboardData.metrics)}
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.innerHTML += metricsHTML;
+            
+            // Add sales chart
+            const salesChartHTML = `
+                <div class="md:col-span-2">
+                    <div class="dashboard-card p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-bold text-gray-900">Monthly Sales by Region</h3>
+                            <div class="flex space-x-2">
+                                <button class="chart-filter active px-3 py-1 bg-primary text-white rounded-lg text-sm">All</button>
+                                <button class="chart-filter px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm">North</button>
+                                <button class="chart-filter px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm">South</button>
+                                <button class="chart-filter px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm">East</button>
+                                <button class="chart-filter px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm">West</button>
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="salesChart" height="250"></canvas>
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.innerHTML += salesChartHTML;
+            
+            // Add product categories chart
+            const categoriesChartHTML = `
+                <div>
+                    <div class="dashboard-card p-6">
+                        <h3 class="text-lg font-bold text-gray-900 mb-4">Revenue by Product Category</h3>
+                        <div class="chart-container">
+                            <canvas id="categoriesChart" height="250"></canvas>
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.innerHTML += categoriesChartHTML;
+            
+            // Add top products table
+            const productsTableHTML = `
+                <div>
+                    <div class="dashboard-card p-6">
+                        <h3 class="text-lg font-bold text-gray-900 mb-4">Top Performing Products</h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead>
+                                    <tr class="border-b border-gray-200">
+                                        <th class="text-left py-2 px-4 text-sm font-medium text-gray-700">Product</th>
+                                        <th class="text-left py-2 px-4 text-sm font-medium text-gray-700">Category</th>
+                                        <th class="text-left py-2 px-4 text-sm font-medium text-gray-700">Revenue</th>
+                                        <th class="text-left py-2 px-4 text-sm font-medium text-gray-700">Growth</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${renderTopProducts(sampleDashboardData.topProducts)}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.innerHTML += productsTableHTML;
+            
+            // Initialize charts
+            initializeCharts();
+            
+            // Add event listeners to chart filters
+            document.querySelectorAll('.chart-filter').forEach(button => {
+                button.addEventListener('click', function() {
+                    document.querySelectorAll('.chart-filter').forEach(btn => {
+                        btn.classList.remove('active', 'bg-primary', 'text-white');
+                        btn.classList.add('bg-gray-100', 'text-gray-700');
+                    });
+                    this.classList.add('active', 'bg-primary', 'text-white');
+                    this.classList.remove('bg-gray-100', 'text-gray-700');
+                });
+            });
+        }
+
+        function initializeCharts() {
+            // Sales Chart
+            const salesCtx = document.getElementById('salesChart').getContext('2d');
+            new Chart(salesCtx, {
+                type: 'line',
+                data: sampleDashboardData.monthlySales,
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toLocaleString();
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Categories Chart
+            const categoriesCtx = document.getElementById('categoriesChart').getContext('2d');
+            new Chart(categoriesCtx, {
+                type: 'doughnut',
+                data: sampleDashboardData.productCategories,
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                        }
+                    }
+                }
+            });
+        }
+
+        // Event Handlers
+        function setupEventListeners() {
+            // Generate dashboard button
+            document.getElementById('generate-btn').addEventListener('click', () => {
+                const prompt = document.getElementById('prompt-input').value.trim();
+                if (prompt) {
+                    generateDashboard(prompt);
+                }
+            });
+            
+            // Clear prompt button
+            document.getElementById('clear-btn').addEventListener('click', () => {
+                document.getElementById('prompt-input').value = '';
+                document.getElementById('prompt-input').focus();
+            });
+            
+            // Example prompts
+            document.querySelectorAll('.example-prompt').forEach(button => {
+                button.addEventListener('click', function() {
+                    const prompt = this.querySelector('span').textContent;
+                    document.getElementById('prompt-input').value = prompt;
+                });
+            });
+            
+            // Enter key in textarea
+            document.getElementById('prompt-input').addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && e.ctrlKey) {
+                    e.preventDefault();
+                    generateDashboard(e.target.value.trim());
+                }
+            });
+            
+            // Theme toggle
+            document.getElementById('theme-toggle').addEventListener('click', () => {
+                document.body.classList.toggle('dark');
+                const icon = document.querySelector('#theme-toggle i');
+                if (document.body.classList.contains('dark')) {
+                    document.body.classList.remove('bg-gray-50');
+                    document.body.classList.add('bg-gray-900');
+                    icon.classList.remove('fa-moon');
+                    icon.classList.add('fa-sun');
+                } else {
+                    document.body.classList.remove('bg-gray-900');
+                    document.body.classList.add('bg-gray-50');
+                    icon.classList.remove('fa-sun');
+                    icon.classList.add('fa-moon');
+                }
+            });
+            
+            // Export dashboard
+            document.getElementById('export-btn').addEventListener('click', () => {
+                alert('Dashboard exported successfully! This would download a PDF/PNG of your dashboard.');
+            });
+            
+            // Refresh dashboard
+            document.getElementById('refresh-btn').addEventListener('click', () => {
+                generateDashboard(document.getElementById('prompt-input').value.trim());
+            });
+            
+            // Fullscreen toggle
+            document.getElementById('fullscreen-btn').addEventListener('click', () => {
+                const container = document.getElementById('dashboard-container').parentElement;
+                container.classList.toggle('fixed');
+                container.classList.toggle('inset-0');
+                container.classList.toggle('z-50');
+                container.classList.toggle('bg-white');
+                container.classList.toggle('p-4');
+                if (container.classList.contains('fixed')) {
+                    document.getElementById('fullscreen-btn').innerHTML = '<i class="fas fa-compress"></i>';
+                } else {
+                    document.getElementById('fullscreen-btn').innerHTML = '<i class="fas fa-expand"></i>';
+                }
+            });
+            
+            // Add data source
+            document.getElementById('add-source-btn').addEventListener('click', () => {
+                alert('Data source connection modal would open here.');
+            });
+            
+            // Navigation links
+            document.addEventListener('click', function(event) {
+                const link = event.target.closest('a[href^="#"]');
+                if (!link) return;
+                event.preventDefault();
+                const targetId = link.getAttribute('href').substring(1);
+                const targetElement = document.getElementById(targetId);
+                if (targetElement) {
+                    targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        }
+
+        // Initialize Page
+        function initializePage() {
+            // Render all components
+            document.getElementById('nav-list').innerHTML = renderNavigation(navigationItems);
+            document.getElementById('example-prompts').innerHTML = renderExamplePrompts(examplePrompts);
+            document.getElementById('data-sources').innerHTML = renderDataSources(dataSources);
+            document.getElementById('chart-types').innerHTML = renderChartTypes(chartTypes);
+            document.getElementById('recent-dashboards').innerHTML = renderRecentDashboards(recentDashboards);
+            document.getElementById('features-grid').innerHTML = renderFeatures(features);
+            document.getElementById('product-links').innerHTML = renderFooterLinks(productLinks);
+            document.getElementById('resource-links').innerHTML = renderFooterLinks(resourceLinks);
+            document.getElementById('contact-links').innerHTML = renderFooterLinks(contactLinks);
+            
+            // Generate initial dashboard
+            renderDashboard();
+            
+            // Setup event listeners
+            setupEventListeners();
+            
+            // Add typing animation
+            setTimeout(() => {
+                document.querySelector('.typewriter').style.animation = 'none';
+                setTimeout(() => {
+                    document.querySelector('.typewriter').style.animation = 'typing 3.5s steps(40, end), blink-caret .75s step-end infinite';
+                }, 10);
+            }, 3500);
+        }
+
+        // Initialize when DOM is loaded
+        document.addEventListener('DOMContentLoaded', initializePage);
+    </script>
+</body>
+</html>
